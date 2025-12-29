@@ -5,6 +5,7 @@ import { initDatabase, dbPath } from './db/index.js';
 import settingsRouter from './routes/settings.js';
 import imagesRouter from './routes/images.js';
 import generateRouter from './routes/generate.js';
+import storybookRouter from './routes/storybook.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,6 +36,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 app.use('/api/settings', settingsRouter);
 app.use('/api/images', imagesRouter);
 app.use('/api/generate', generateRouter);
+app.use('/api/storybook', storybookRouter);
 
 // 错误处理
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

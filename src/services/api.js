@@ -27,35 +27,20 @@ async function request(endpoint, options = {}) {
 // ============ 设置 API ============
 
 export const settingsApi = {
-    // 获取所有设置
     getAll: () => request('/settings'),
-
-    // 获取单个设置
     get: (key) => request(`/settings/${key}`),
-
-    // 更新设置
     set: (key, value) =>
         request(`/settings/${key}`, {
             method: 'PUT',
             body: JSON.stringify({ value }),
         }),
-
-    // 获取已配置的供应商列表
-    getConfiguredProviders: () =>
-        request('/settings/api-keys/list'),
-
-    // 获取 API Key 状态
-    getApiKeyStatus: (provider) =>
-        request(`/settings/api-keys/${provider}`),
-
-    // 保存 API Key
+    getConfiguredProviders: () => request('/settings/api-keys/list'),
+    getApiKeyStatus: (provider) => request(`/settings/api-keys/${provider}`),
     saveApiKey: (provider, apiKey) =>
         request(`/settings/api-keys/${provider}`, {
             method: 'PUT',
             body: JSON.stringify({ apiKey }),
         }),
-
-    // 删除 API Key
     deleteApiKey: (provider) =>
         request(`/settings/api-keys/${provider}`, { method: 'DELETE' }),
 };
@@ -63,22 +48,13 @@ export const settingsApi = {
 // ============ 图片 API ============
 
 export const imagesApi = {
-    // 获取图片列表
     getAll: (favoritesOnly = false) =>
         request(`/images${favoritesOnly ? '?favorites=true' : ''}`),
-
-    // 获取单个图片
     get: (id) => request(`/images/${id}`),
-
-    // 切换收藏
     toggleFavorite: (id) =>
         request(`/images/${id}/favorite`, { method: 'PATCH' }),
-
-    // 删除图片
     delete: (id) =>
         request(`/images/${id}`, { method: 'DELETE' }),
-
-    // 批量删除
     batchDelete: (ids) =>
         request('/images/batch-delete', {
             method: 'POST',
@@ -89,16 +65,41 @@ export const imagesApi = {
 // ============ 生成 API ============
 
 export const generateApi = {
-    // 生成图片
     generate: (story, style, provider) =>
         request('/generate', {
             method: 'POST',
             body: JSON.stringify({ story, style, provider }),
         }),
+    getConfiguredProviders: () => request('/generate/providers'),
+};
 
-    // 获取已配置的供应商
-    getConfiguredProviders: () =>
-        request('/generate/providers'),
+// ============ 绘本 API ============
+
+export const storybookApi = {
+    // 获取绘本列表
+    getAll: (favoritesOnly = false) =>
+        request(`/storybook${favoritesOnly ? '?favorites=true' : ''}`),
+
+    // 获取单个绘本（含所有页面）
+    get: (id) => request(`/storybook/${id}`),
+
+    // 生成绘本
+    generate: (theme, sceneCount, style, provider) =>
+        request('/storybook/generate', {
+            method: 'POST',
+            body: JSON.stringify({ theme, sceneCount, style, provider }),
+        }),
+
+    // 获取生成状态
+    getStatus: (id) => request(`/storybook/${id}/status`),
+
+    // 切换收藏
+    toggleFavorite: (id) =>
+        request(`/storybook/${id}/favorite`, { method: 'PATCH' }),
+
+    // 删除绘本
+    delete: (id) =>
+        request(`/storybook/${id}`, { method: 'DELETE' }),
 };
 
 // 健康检查
@@ -110,5 +111,6 @@ export default {
     settings: settingsApi,
     images: imagesApi,
     generate: generateApi,
+    storybook: storybookApi,
     health: healthApi,
 };

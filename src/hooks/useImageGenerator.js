@@ -1,11 +1,36 @@
 // 图片生成 Hook - 使用后端 API
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { generateApi } from '../services/api';
+import { generateApi, settingsApi } from '../services/api';
 
 export function useImageGenerator() {
     const { settings, setLoading, setError, setCurrentImage, addToGallery } = useAppStore();
     const [progress, setProgress] = useState('idle'); // 'idle' | 'generating' | 'done'
+    const [isConfigured, setIsConfigured] = useState(false);
+    const [checkingConfig, setCheckingConfig] = useState(true);
+
+    // 检查当前供应商是否已配置 API Key
+    const checkApiKeyStatus = useCallback(async () => {
+        setCheckingConfig(true);
+        try {
+            const result = await settingsApi.getApiKeyStatus(settings.provider);
+            if (result.success && result.data) {
+                setIsConfigured(result.data.configured);
+            } else {
+                setIsConfigured(false);
+            }
+        } catch (error) {
+            console.error('检查 API Key 状态失败:', error);
+            setIsConfigured(false);
+        } finally {
+            setCheckingConfig(false);
+        }
+    }, [settings.provider]);
+
+    // 当供应商变化时重新检查
+    useEffect(() => {
+        checkApiKeyStatus();
+    }, [checkApiKeyStatus]);
 
     /**
      * 生成图片
@@ -13,6 +38,11 @@ export function useImageGenerator() {
     const generate = useCallback(async (story) => {
         if (!story?.trim()) {
             setError('请输入故事内容');
+            return null;
+        }
+
+        if (!isConfigured) {
+            setError('请先在设置页面配置 API Key');
             return null;
         }
 
@@ -53,12 +83,17 @@ export function useImageGenerator() {
             setError(error.message || '图片生成失败，请稍后重试');
             setProgress('idle');
             return null;
+        } finally {
+            setLoading(false);
         }
-    }, [settings, setLoading, setError, setCurrentImage, addToGallery]);
+    }, [settings, isConfigured, setLoading, setError, setCurrentImage, addToGallery]);
 
     return {
         generate,
         progress,
+        isConfigured,
+        checkingConfig,
+        checkApiKeyStatus, // 暴露刷新方法
     };
 }
 
