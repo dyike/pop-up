@@ -2,6 +2,13 @@
 // 统一管理所有 AI 绘图供应商
 
 import { OpenAIProvider } from './OpenAIProvider';
+import {
+    DoubaoProvider,
+    ZhipuProvider,
+    TongyiProvider,
+    StabilityProvider,
+    ReplicateProvider
+} from './GenericProviders';
 import { DEFAULT_PROVIDER, getProviderById } from '../config/providers';
 
 // 供应商实例缓存
@@ -10,9 +17,11 @@ const providerInstances = {};
 // 供应商类映射
 const providerClasses = {
     openai: OpenAIProvider,
-    // 可扩展更多供应商
-    // tongyi: TongyiProvider,
-    // stabilityai: StabilityAIProvider,
+    doubao: DoubaoProvider,
+    zhipu: ZhipuProvider,
+    tongyi: TongyiProvider,
+    stabilityai: StabilityProvider,
+    replicate: ReplicateProvider,
 };
 
 /**
@@ -79,5 +88,12 @@ export async function generateImage(prompt, options = {}) {
     return provider.generateImage(prompt, options);
 }
 
-// 导出便捷方法
-export { OpenAIProvider };
+// 导出所有 Provider 类
+export {
+    OpenAIProvider,
+    DoubaoProvider,
+    ZhipuProvider,
+    TongyiProvider,
+    StabilityProvider,
+    ReplicateProvider
+};

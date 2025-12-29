@@ -1,136 +1,160 @@
-// 画廊组件
-import { useState, useEffect } from 'react';
+// 画廊组件 - 使用后端 API
+import { useState, useEffect, useCallback } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { getAllImages, deleteImage, toggleFavorite } from '../../services/storageService';
-import { useVoiceReader } from '../../hooks/useVoiceReader';
+import { imagesApi } from '../../services/api';
+import { getStyleById } from '../../config/styles';
 
-export function Gallery() {
+export function Gallery({ onViewImage }) {
     const { gallery, setGalleryImages, removeFromGallery, updateGalleryImage } = useAppStore();
-    const [filter, setFilter] = useState('all'); // all, favorites
+    const [filter, setFilter] = useState('all'); // 'all' | 'favorites'
+    const [loading, setLoading] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
-    const { speak, stop, isPlaying } = useVoiceReader();
 
-    // 加载图片
-    useEffect(() => {
-        loadImages();
-    }, []);
-
-    const loadImages = async () => {
+    // 从后端加载图片
+    const loadImages = useCallback(async () => {
+        setLoading(true);
         try {
-            const images = await getAllImages();
-            setGalleryImages(images);
+            const result = await imagesApi.getAll(filter === 'favorites');
+            if (result.success && result.data) {
+                // 转换格式
+                const images = result.data.map(img => ({
+                    id: img.id,
+                    story: img.story,
+                    style: img.style,
+                    provider: img.provider,
+                    imageUrl: img.image_url,
+                    enhancedPrompt: img.enhanced_prompt,
+                    revisedPrompt: img.revised_prompt,
+                    isFavorite: img.is_favorite === 1,
+                    createdAt: img.created_at
+                }));
+                setGalleryImages(images);
+            }
         } catch (error) {
             console.error('加载图片失败:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [filter, setGalleryImages]);
+
+    useEffect(() => {
+        loadImages();
+    }, [loadImages]);
+
+    // 切换收藏
+    const handleToggleFavorite = async (id) => {
+        try {
+            const result = await imagesApi.toggleFavorite(id);
+            if (result.success) {
+                updateGalleryImage(id, { isFavorite: result.data.is_favorite === 1 });
+            }
+        } catch (error) {
+            console.error('切换收藏失败:', error);
         }
     };
 
-    const handleDelete = async (id, e) => {
-        e?.stopPropagation();
+    // 删除图片
+    const handleDelete = async (id) => {
         if (!confirm('确定要删除这张图片吗？')) return;
+
         try {
-            await deleteImage(id);
-            removeFromGallery(id);
-            if (selectedImage?.id === id) {
-                setSelectedImage(null);
+            const result = await imagesApi.delete(id);
+            if (result.success) {
+                removeFromGallery(id);
+                if (selectedImage?.id === id) {
+                    setSelectedImage(null);
+                }
             }
         } catch (error) {
             console.error('删除失败:', error);
         }
     };
 
-    const handleFavorite = async (id, e) => {
-        e?.stopPropagation();
-        try {
-            const newStatus = await toggleFavorite(id);
-            updateGalleryImage(id, { isFavorite: newStatus });
-        } catch (error) {
-            console.error('收藏失败:', error);
-        }
+    // 下载图片
+    const handleDownload = (image) => {
+        const link = document.createElement('a');
+        link.href = image.imageUrl;
+        link.download = `popup-${image.id}.png`;
+        link.click();
     };
 
-    const handleSpeak = (story, e) => {
-        e?.stopPropagation();
-        if (isPlaying) {
-            stop();
-        } else {
-            speak(story);
-        }
-    };
+    const filteredImages = gallery.images;
 
-    const filteredImages = filter === 'favorites'
-        ? gallery.images.filter(img => img.isFavorite)
-        : gallery.images;
+    if (loading) {
+        return (
+            <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p className="loading-text">加载中...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="gallery-page">
             <div className="page-title">
                 <h1>🖼️ 我的画廊</h1>
-                <p>收藏你喜欢的作品</p>
+                <p>这里保存着所有生成的精彩作品</p>
             </div>
 
-            {/* 筛选器 */}
+            {/* 筛选栏 */}
             <div className="filter-bar">
                 <button
                     className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
                     onClick={() => setFilter('all')}
                 >
-                    📚 全部 ({gallery.images.length})
+                    📷 全部
                 </button>
                 <button
                     className={`filter-btn ${filter === 'favorites' ? 'active' : ''}`}
                     onClick={() => setFilter('favorites')}
                 >
-                    ⭐ 收藏 ({gallery.images.filter(i => i.isFavorite).length})
+                    ⭐ 收藏
+                </button>
+                <button className="filter-btn" onClick={loadImages}>
+                    🔄 刷新
                 </button>
             </div>
 
-            {/* 图片网格 */}
+            {/* 空状态 */}
             {filteredImages.length === 0 ? (
-                <div className="empty-state card">
+                <div className="empty-state">
                     <div className="empty-state-icon">
                         {filter === 'favorites' ? '⭐' : '🎨'}
                     </div>
-                    <h2 className="empty-state-title">
-                        {filter === 'favorites' ? '还没有收藏' : '还没有作品'}
-                    </h2>
+                    <h3 className="empty-state-title">
+                        {filter === 'favorites' ? '还没有收藏' : '画廊是空的'}
+                    </h3>
                     <p className="empty-state-text">
                         {filter === 'favorites'
-                            ? '点击图片上的 ❤️ 可以收藏'
-                            : '去首页创作你的第一幅画吧~'}
+                            ? '点击图片上的星星来收藏你喜欢的作品'
+                            : '去创作页面生成你的第一幅画吧！'}
                     </p>
                 </div>
             ) : (
                 <div className="gallery-grid">
-                    {filteredImages.map((image) => (
-                        <div
-                            key={image.id}
-                            className="gallery-item"
-                            onClick={() => setSelectedImage(image)}
-                        >
-                            <img src={image.imageUrl} alt={image.story} />
-                            <div className="gallery-item-favorite">
-                                {image.isFavorite ? '❤️' : ''}
-                            </div>
-                            <div className="gallery-item-overlay">
-                                <p className="gallery-item-story">{image.story}</p>
-                                <div className="gallery-item-actions">
-                                    <button onClick={(e) => handleFavorite(image.id, e)}>
-                                        {image.isFavorite ? '💔' : '❤️'}
-                                    </button>
-                                    <button onClick={(e) => handleSpeak(image.story, e)}>
-                                        🔊
-                                    </button>
-                                    <button onClick={(e) => handleDelete(image.id, e)}>
-                                        🗑️
-                                    </button>
+                    {filteredImages.map((image) => {
+                        const style = getStyleById(image.style);
+                        return (
+                            <div
+                                key={image.id}
+                                className="gallery-item"
+                                onClick={() => setSelectedImage(image)}
+                            >
+                                <img src={image.imageUrl} alt={image.story} />
+                                <div className="gallery-item-overlay">
+                                    <p className="gallery-item-story">{image.story}</p>
                                 </div>
+                                <span className="gallery-item-favorite">
+                                    {image.isFavorite ? '⭐' : '☆'}
+                                </span>
+                                <span className="gallery-item-style">{style?.icon}</span>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
-            {/* 图片详情模态框 */}
+            {/* 详情模态框 */}
             {selectedImage && (
                 <div className="modal-overlay" onClick={() => setSelectedImage(null)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -148,21 +172,28 @@ export function Gallery() {
                         <div className="modal-info">
                             <p className="modal-story">{selectedImage.story}</p>
                             <div className="modal-meta">
-                                <span>🎨 {selectedImage.style}</span>
-                                <span>📅 {new Date(selectedImage.createdAt).toLocaleDateString()}</span>
+                                <span>{getStyleById(selectedImage.style)?.icon} {getStyleById(selectedImage.style)?.name}</span>
+                                <span>•</span>
+                                <span>{new Date(selectedImage.createdAt).toLocaleDateString()}</span>
                             </div>
                             <div className="modal-actions">
                                 <button
                                     className="btn btn-secondary"
-                                    onClick={() => handleFavorite(selectedImage.id)}
+                                    onClick={() => handleToggleFavorite(selectedImage.id)}
                                 >
-                                    {selectedImage.isFavorite ? '💔 取消收藏' : '❤️ 收藏'}
+                                    {selectedImage.isFavorite ? '💛 已收藏' : '⭐ 收藏'}
                                 </button>
                                 <button
                                     className="btn btn-secondary"
-                                    onClick={() => handleSpeak(selectedImage.story)}
+                                    onClick={() => handleDownload(selectedImage)}
                                 >
-                                    {isPlaying ? '⏹️ 停止' : '🔊 朗读'}
+                                    📥 下载
+                                </button>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => handleDelete(selectedImage.id)}
+                                >
+                                    🗑️ 删除
                                 </button>
                             </div>
                         </div>
@@ -171,16 +202,13 @@ export function Gallery() {
             )}
 
             <style>{`
-        .gallery-page {
-          max-width: 1200px;
-          margin: 0 auto;
-        }
+        .gallery-page { max-width: 1200px; margin: 0 auto; }
         
         .filter-bar {
           display: flex;
-          gap: 1rem;
-          margin-bottom: 2rem;
-          justify-content: center;
+          gap: 0.75rem;
+          margin-bottom: 1.5rem;
+          flex-wrap: wrap;
         }
         
         .filter-btn {
@@ -203,35 +231,23 @@ export function Gallery() {
           color: white;
         }
         
-        .gallery-item-actions {
-          display: flex;
-          gap: 0.5rem;
-          margin-top: 0.5rem;
-        }
-        
-        .gallery-item-actions button {
-          padding: 0.5rem;
-          border: none;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.2);
-          cursor: pointer;
-          transition: var(--transition-fast);
-        }
-        
-        .gallery-item-actions button:hover {
-          background: rgba(255, 255, 255, 0.4);
-          transform: scale(1.1);
+        .gallery-item-style {
+          position: absolute;
+          top: 0.75rem;
+          left: 0.75rem;
+          font-size: 1.25rem;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
         
         .modal-story {
           font-size: var(--font-size-lg);
-          margin-bottom: 1rem;
-          line-height: 1.6;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
         }
         
         .modal-meta {
           display: flex;
-          gap: 1.5rem;
+          gap: 0.5rem;
           color: var(--color-text-light);
           font-size: var(--font-size-sm);
           margin-bottom: 1rem;
@@ -239,8 +255,13 @@ export function Gallery() {
         
         .modal-actions {
           display: flex;
-          gap: 1rem;
+          gap: 0.75rem;
           flex-wrap: wrap;
+        }
+        
+        .modal-actions .btn {
+          flex: 1;
+          min-width: 100px;
         }
       `}</style>
         </div>
