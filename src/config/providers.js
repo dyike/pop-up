@@ -138,6 +138,33 @@ export const PROVIDERS = {
         apiKeyPlaceholder: 'r8_...',
         apiKeyHelp: 'https://replicate.com/account/api-tokens',
         supportsCustomBaseUrl: true
+    },
+
+    // Google Gemini
+    gemini: {
+        id: 'gemini',
+        name: 'Google Gemini',
+        icon: '💎',
+        description: 'Google Gemini 图像生成',
+        enabled: true,
+        models: [
+            { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', recommended: true },
+            { id: 'gemini-3-pro-image', name: 'Gemini 3 Pro Image' },
+            { id: 'gemini-3-pro-image-4-3', name: 'Gemini 3 Pro Image 4:3' },
+            { id: 'imagen-3.0-generate-002', name: 'Imagen 3' }
+        ],
+        defaultModel: 'gemini-2.0-flash-exp',
+        defaultBaseUrl: 'https://generativelanguage.googleapis.com',
+        sizes: {
+            'gemini-2.0-flash-exp': ['1024x1024', '1024x768', '768x1024'],
+            'gemini-3-pro-image': ['1024x1024', '1024x768', '768x1024'],
+            'gemini-3-pro-image-4-3': ['1024x768', '768x1024', '1024x1024'],
+            'imagen-3.0-generate-002': ['1024x1024', '1024x768', '768x1024']
+        },
+        defaultSize: '1024x1024',
+        apiKeyPlaceholder: 'sk-...（代理）或 AIza...（官方）',
+        apiKeyHelp: 'https://aistudio.google.com/apikey',
+        supportsCustomBaseUrl: true
     }
 };
 

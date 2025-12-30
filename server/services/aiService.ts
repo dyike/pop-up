@@ -5,6 +5,7 @@ import { generateWithZhipu } from '../providers/zhipu.js';
 import { generateWithTongyi } from '../providers/tongyi.js';
 import { generateWithStability } from '../providers/stability.js';
 import { generateWithReplicate } from '../providers/replicate.js';
+import { generateWithGemini } from '../providers/gemini.js';
 import type { GenerateImageResult, StyleConfig } from '../types/index.js';
 
 // 风格配置
@@ -123,6 +124,8 @@ export async function generateImage(options: GenerateOptions): Promise<GenerateI
             return generateWithStability({ prompt, apiKey, baseUrl, model, size });
         case 'replicate':
             return generateWithReplicate({ prompt, apiKey, baseUrl, model, size });
+        case 'gemini':
+            return generateWithGemini({ prompt, apiKey, baseUrl, model, size });
         default:
             throw new Error(`不支持的供应商: ${provider}`);
     }

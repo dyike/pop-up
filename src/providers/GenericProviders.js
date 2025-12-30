@@ -396,3 +396,96 @@ export class ReplicateProvider extends BaseProvider {
         return 'Replicate';
     }
 }
+
+/**
+ * Google Gemini 图像生成 Provider
+ */
+export class GeminiProvider extends BaseProvider {
+    constructor(config = {}) {
+        super(config);
+        this.model = config.model || 'imagen-3.0-generate-002';
+        this.size = config.size || '1024x1024';
+    }
+
+    getDefaultBaseUrl() {
+        return 'https://generativelanguage.googleapis.com/v1beta';
+    }
+
+    getDefaultModelName() {
+        return 'imagen-3.0-generate-002';
+    }
+
+    async generateImage(prompt, options = {}) {
+        if (!this.apiKey) {
+            throw new Error('请先配置 Gemini API Key');
+        }
+
+        const model = this.getModelName() || options.model || this.model;
+        const size = options.size || this.size;
+        const baseUrl = this.getBaseUrl().replace(/\/+$/, '');
+
+        // 解析尺寸为宽高比
+        const [width, height] = size.split('x').map(Number);
+        const aspectRatio = width === height ? '1:1' :
+            width > height ? '16:9' : '9:16';
+
+        try {
+            // Gemini Imagen API 使用 :predict 端点
+            const response = await fetch(`${baseUrl}/models/${model}:predict`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': this.apiKey
+                },
+                body: JSON.stringify({
+                    instances: [
+                        { prompt }
+                    ],
+                    parameters: {
+                        sampleCount: 1,
+                        aspectRatio,
+                        personGeneration: 'ALLOW_ADULT',
+                        safetyFilterLevel: 'BLOCK_MEDIUM_AND_ABOVE'
+                    }
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error?.message || data.message || 'Gemini 生成失败');
+            }
+
+            // Gemini Imagen 响应格式
+            if (data.predictions && data.predictions.length > 0) {
+                const prediction = data.predictions[0];
+                if (prediction.bytesBase64Encoded) {
+                    const mimeType = prediction.mimeType || 'image/png';
+                    return {
+                        url: `data:${mimeType};base64,${prediction.bytesBase64Encoded}`,
+                        revisedPrompt: prompt
+                    };
+                }
+            }
+
+            // 尝试其他可能的响应格式
+            if (data.images && data.images.length > 0) {
+                return {
+                    url: data.images[0].url || `data:image/png;base64,${data.images[0].base64}`,
+                    revisedPrompt: prompt
+                };
+            }
+
+            throw new Error('Gemini 响应格式不正确');
+
+        } catch (error) {
+            console.error('Gemini 生成失败:', error);
+            throw error;
+        }
+    }
+
+    getName() {
+        return 'Google Gemini';
+    }
+}
+

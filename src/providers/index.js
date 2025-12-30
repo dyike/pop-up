@@ -7,7 +7,8 @@ import {
     ZhipuProvider,
     TongyiProvider,
     StabilityProvider,
-    ReplicateProvider
+    ReplicateProvider,
+    GeminiProvider
 } from './GenericProviders';
 import { DEFAULT_PROVIDER, getProviderById } from '../config/providers';
 
@@ -22,6 +23,7 @@ const providerClasses = {
     tongyi: TongyiProvider,
     stabilityai: StabilityProvider,
     replicate: ReplicateProvider,
+    gemini: GeminiProvider,
 };
 
 /**
@@ -95,5 +97,6 @@ export {
     ZhipuProvider,
     TongyiProvider,
     StabilityProvider,
-    ReplicateProvider
+    ReplicateProvider,
+    GeminiProvider
 };
