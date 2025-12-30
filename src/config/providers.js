@@ -12,13 +12,15 @@ export const PROVIDERS = {
             { id: 'dall-e-2', name: 'DALL-E 2' }
         ],
         defaultModel: 'dall-e-3',
+        defaultBaseUrl: 'https://api.openai.com/v1',
         sizes: {
             'dall-e-3': ['1024x1024', '1792x1024', '1024x1792'],
             'dall-e-2': ['256x256', '512x512', '1024x1024']
         },
         defaultSize: '1024x1024',
         apiKeyPlaceholder: 'sk-...',
-        apiKeyHelp: 'https://platform.openai.com/api-keys'
+        apiKeyHelp: 'https://platform.openai.com/api-keys',
+        supportsCustomBaseUrl: true
     },
 
     // 豆包（字节跳动）
@@ -33,13 +35,15 @@ export const PROVIDERS = {
             { id: 'doubao-seede-241210', name: 'Seed-E' }
         ],
         defaultModel: 'doubao-seedu-20241210',
+        defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
         sizes: {
             'doubao-seedu-20241210': ['1024x1024', '768x1024', '1024x768'],
             'doubao-seede-241210': ['1024x1024', '768x1024', '1024x768']
         },
         defaultSize: '1024x1024',
         apiKeyPlaceholder: '输入 API Key...',
-        apiKeyHelp: 'https://console.volcengine.com/ark'
+        apiKeyHelp: 'https://console.volcengine.com/ark',
+        supportsCustomBaseUrl: true
     },
 
     // 智谱 AI
@@ -54,13 +58,15 @@ export const PROVIDERS = {
             { id: 'cogview-3', name: 'CogView-3' }
         ],
         defaultModel: 'cogview-3-plus',
+        defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
         sizes: {
             'cogview-3-plus': ['1024x1024', '768x1344', '1344x768'],
             'cogview-3': ['1024x1024']
         },
         defaultSize: '1024x1024',
         apiKeyPlaceholder: '输入 API Key...',
-        apiKeyHelp: 'https://open.bigmodel.cn/'
+        apiKeyHelp: 'https://open.bigmodel.cn/',
+        supportsCustomBaseUrl: true
     },
 
     // 通义万相（阿里云）
@@ -75,13 +81,15 @@ export const PROVIDERS = {
             { id: 'wanx2.1-t2i-turbo', name: '万相 2.1 Turbo' }
         ],
         defaultModel: 'wanx-v1',
+        defaultBaseUrl: 'https://dashscope.aliyuncs.com/api/v1',
         sizes: {
             'wanx-v1': ['1024x1024', '720x1280', '1280x720'],
             'wanx2.1-t2i-turbo': ['1024x1024', '720x1280', '1280x720']
         },
         defaultSize: '1024x1024',
         apiKeyPlaceholder: '输入 API Key...',
-        apiKeyHelp: 'https://dashscope.console.aliyun.com/'
+        apiKeyHelp: 'https://dashscope.console.aliyun.com/',
+        supportsCustomBaseUrl: true
     },
 
     // Stability AI
@@ -96,13 +104,15 @@ export const PROVIDERS = {
             { id: 'stable-diffusion-v1-6', name: 'SD 1.6' }
         ],
         defaultModel: 'stable-diffusion-xl-1024-v1-0',
+        defaultBaseUrl: 'https://api.stability.ai/v1',
         sizes: {
             'stable-diffusion-xl-1024-v1-0': ['1024x1024', '1152x896', '896x1152'],
             'stable-diffusion-v1-6': ['512x512', '768x768']
         },
         defaultSize: '1024x1024',
         apiKeyPlaceholder: 'sk-...',
-        apiKeyHelp: 'https://platform.stability.ai/'
+        apiKeyHelp: 'https://platform.stability.ai/',
+        supportsCustomBaseUrl: true
     },
 
     // Replicate
@@ -118,6 +128,7 @@ export const PROVIDERS = {
             { id: 'sdxl', name: 'SDXL' }
         ],
         defaultModel: 'flux-schnell',
+        defaultBaseUrl: 'https://api.replicate.com/v1',
         sizes: {
             'flux-schnell': ['1024x1024', '1024x768', '768x1024'],
             'flux-dev': ['1024x1024', '1024x768', '768x1024'],
@@ -125,7 +136,8 @@ export const PROVIDERS = {
         },
         defaultSize: '1024x1024',
         apiKeyPlaceholder: 'r8_...',
-        apiKeyHelp: 'https://replicate.com/account/api-tokens'
+        apiKeyHelp: 'https://replicate.com/account/api-tokens',
+        supportsCustomBaseUrl: true
     }
 };
 

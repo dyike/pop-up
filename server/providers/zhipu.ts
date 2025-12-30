@@ -4,14 +4,19 @@ import type { GenerateImageResult } from '../types/index.js';
 interface ZhipuOptions {
     prompt: string;
     apiKey: string;
+    baseUrl?: string;
     model?: string;
     size?: string;
 }
 
-export async function generateWithZhipu(options: ZhipuOptions): Promise<GenerateImageResult> {
-    const { prompt, apiKey, model = 'cogview-3-plus', size = '1024x1024' } = options;
+const DEFAULT_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4';
 
-    const response = await fetch('https://open.bigmodel.cn/api/paas/v4/images/generations', {
+export async function generateWithZhipu(options: ZhipuOptions): Promise<GenerateImageResult> {
+    const { prompt, apiKey, baseUrl, model = 'cogview-3-plus', size = '1024x1024' } = options;
+    const base = (baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+    const endpoint = `${base}/images/generations`;
+
+    const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -36,3 +41,4 @@ export async function generateWithZhipu(options: ZhipuOptions): Promise<Generate
         revisedPrompt: prompt
     };
 }
+

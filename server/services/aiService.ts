@@ -102,26 +102,27 @@ interface GenerateOptions {
     prompt: string;
     provider: string;
     apiKey: string;
+    baseUrl?: string;
     model?: string;
     size?: string;
 }
 
 export async function generateImage(options: GenerateOptions): Promise<GenerateImageResult> {
-    const { prompt, provider, apiKey, model, size } = options;
+    const { prompt, provider, apiKey, baseUrl, model, size } = options;
 
     switch (provider) {
         case 'openai':
-            return generateWithOpenAI({ prompt, apiKey, model, size });
+            return generateWithOpenAI({ prompt, apiKey, baseUrl, model, size });
         case 'doubao':
-            return generateWithDoubao({ prompt, apiKey, model, size });
+            return generateWithDoubao({ prompt, apiKey, baseUrl, model, size });
         case 'zhipu':
-            return generateWithZhipu({ prompt, apiKey, model, size });
+            return generateWithZhipu({ prompt, apiKey, baseUrl, model, size });
         case 'tongyi':
-            return generateWithTongyi({ prompt, apiKey, model, size });
+            return generateWithTongyi({ prompt, apiKey, baseUrl, model, size });
         case 'stabilityai':
-            return generateWithStability({ prompt, apiKey, model, size });
+            return generateWithStability({ prompt, apiKey, baseUrl, model, size });
         case 'replicate':
-            return generateWithReplicate({ prompt, apiKey, model, size });
+            return generateWithReplicate({ prompt, apiKey, baseUrl, model, size });
         default:
             throw new Error(`不支持的供应商: ${provider}`);
     }

@@ -5,6 +5,8 @@ export class BaseProvider {
     constructor(config = {}) {
         this.config = config;
         this.apiKey = config.apiKey || '';
+        this.baseUrl = config.baseUrl || '';
+        this.modelName = config.modelName || '';
     }
 
     /**
@@ -13,6 +15,64 @@ export class BaseProvider {
      */
     setApiKey(apiKey) {
         this.apiKey = apiKey;
+    }
+
+    /**
+     * 设置 Base URL
+     * @param {string} baseUrl 
+     */
+    setBaseUrl(baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
+    /**
+     * 设置自定义 Model Name
+     * @param {string} modelName 
+     */
+    setModelName(modelName) {
+        this.modelName = modelName;
+    }
+
+    /**
+     * 设置完整配置
+     * @param {object} config - { apiKey, baseUrl, modelName }
+     */
+    setConfig(config = {}) {
+        if (config.apiKey) this.apiKey = config.apiKey;
+        if (config.baseUrl) this.baseUrl = config.baseUrl;
+        if (config.modelName) this.modelName = config.modelName;
+    }
+
+    /**
+     * 获取实际使用的 Base URL
+     * @returns {string}
+     */
+    getBaseUrl() {
+        return this.baseUrl || this.getDefaultBaseUrl();
+    }
+
+    /**
+     * 获取默认 Base URL（子类可重写）
+     * @returns {string}
+     */
+    getDefaultBaseUrl() {
+        return '';
+    }
+
+    /**
+     * 获取实际使用的 Model Name
+     * @returns {string}
+     */
+    getModelName() {
+        return this.modelName || this.getDefaultModelName();
+    }
+
+    /**
+     * 获取默认 Model Name（子类可重写）
+     * @returns {string}
+     */
+    getDefaultModelName() {
+        return '';
     }
 
     /**
@@ -59,3 +119,4 @@ export class BaseProvider {
 }
 
 export default BaseProvider;
+

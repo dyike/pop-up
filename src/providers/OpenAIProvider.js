@@ -12,13 +12,23 @@ export class OpenAIProvider extends BaseProvider {
         this.size = config.size || '1024x1024';
     }
 
+    getDefaultBaseUrl() {
+        return 'https://api.openai.com/v1';
+    }
+
+    getDefaultModelName() {
+        return 'dall-e-3';
+    }
+
     /**
      * 获取或创建 OpenAI 客户端
      */
     getClient() {
         if (!this.client && this.apiKey) {
+            const baseURL = this.getBaseUrl();
             this.client = new OpenAI({
                 apiKey: this.apiKey,
+                baseURL: baseURL !== this.getDefaultBaseUrl() ? baseURL : undefined,
                 dangerouslyAllowBrowser: true // 仅用于演示，生产环境应使用后端代理
             });
         }
@@ -30,6 +40,22 @@ export class OpenAIProvider extends BaseProvider {
      */
     setApiKey(apiKey) {
         super.setApiKey(apiKey);
+        this.client = null; // 重置客户端
+    }
+
+    /**
+     * 设置 Base URL（重写以重置客户端）
+     */
+    setBaseUrl(baseUrl) {
+        super.setBaseUrl(baseUrl);
+        this.client = null; // 重置客户端
+    }
+
+    /**
+     * 设置完整配置（重写以重置客户端）
+     */
+    setConfig(config = {}) {
+        super.setConfig(config);
         this.client = null; // 重置客户端
     }
 
@@ -59,7 +85,7 @@ export class OpenAIProvider extends BaseProvider {
             throw new Error('请先配置 OpenAI API Key');
         }
 
-        const model = options.model || this.model;
+        const model = this.getModelName() || options.model || this.model;
         const size = options.size || this.size;
 
         try {
@@ -117,3 +143,4 @@ export class OpenAIProvider extends BaseProvider {
 }
 
 export default OpenAIProvider;
+

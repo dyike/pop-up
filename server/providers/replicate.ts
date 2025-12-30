@@ -4,9 +4,12 @@ import type { GenerateImageResult } from '../types/index.js';
 interface ReplicateOptions {
     prompt: string;
     apiKey: string;
+    baseUrl?: string;
     model?: string;
     size?: string;
 }
+
+const DEFAULT_BASE_URL = 'https://api.replicate.com/v1';
 
 const MODEL_VERSIONS: Record<string, string> = {
     'flux-schnell': 'black-forest-labs/flux-schnell',
@@ -19,12 +22,13 @@ async function sleep(ms: number): Promise<void> {
 }
 
 export async function generateWithReplicate(options: ReplicateOptions): Promise<GenerateImageResult> {
-    const { prompt, apiKey, model = 'flux-schnell', size = '1024x1024' } = options;
+    const { prompt, apiKey, baseUrl, model = 'flux-schnell', size = '1024x1024' } = options;
     const [width, height] = size.split('x').map(Number);
-    const version = MODEL_VERSIONS[model] || MODEL_VERSIONS['flux-schnell'];
+    const version = MODEL_VERSIONS[model] || model;
+    const baseEndpoint = (baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 
     // 创建预测
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
+    const response = await fetch(`${baseEndpoint}/predictions`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -65,3 +69,4 @@ export async function generateWithReplicate(options: ReplicateOptions): Promise<
 
     throw new Error('生成超时');
 }
+

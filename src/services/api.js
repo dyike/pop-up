@@ -36,13 +36,21 @@ export const settingsApi = {
         }),
     getConfiguredProviders: () => request('/settings/api-keys/list'),
     getApiKeyStatus: (provider) => request(`/settings/api-keys/${provider}`),
-    saveApiKey: (provider, apiKey) =>
+    saveApiKey: (provider, apiKey, baseUrl = '', modelName = '') =>
         request(`/settings/api-keys/${provider}`, {
             method: 'PUT',
-            body: JSON.stringify({ apiKey }),
+            body: JSON.stringify({ apiKey, baseUrl, modelName }),
         }),
     deleteApiKey: (provider) =>
         request(`/settings/api-keys/${provider}`, { method: 'DELETE' }),
+
+    // LLM 配置（故事生成用）
+    getLLMConfig: () => request('/settings/llm-config'),
+    saveLLMConfig: (apiKey, baseUrl = '', modelName = '') =>
+        request('/settings/llm-config', {
+            method: 'PUT',
+            body: JSON.stringify({ apiKey, baseUrl, modelName }),
+        }),
 };
 
 // ============ 图片 API ============

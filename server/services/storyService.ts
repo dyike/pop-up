@@ -36,36 +36,52 @@ export interface GeneratedStory {
     scenes: Scene[];
 }
 
+export interface LLMConfig {
+    apiKey: string;
+    baseUrl: string;
+    modelName: string;
+}
+
+/**
+ * 获取 LLM 配置
+ */
+export function getLLMConfig(): LLMConfig | null {
+    const row = db.prepare('SELECT api_key, base_url, model_name FROM llm_config WHERE id = 1').get() as {
+        api_key: string;
+        base_url: string;
+        model_name: string
+    } | undefined;
+
+    if (!row?.api_key) {
+        return null;
+    }
+
+    return {
+        apiKey: row.api_key,
+        baseUrl: row.base_url || 'https://api.openai.com/v1',
+        modelName: row.model_name || 'gpt-4o-mini'
+    };
+}
+
 /**
  * 调用 LLM 生成故事
  */
 export async function generateStoryWithLLM(
     theme: string,
-    sceneCount: number,
-    provider: string,
-    apiKey: string
+    sceneCount: number
 ): Promise<GeneratedStory> {
+    const config = getLLMConfig();
+
+    if (!config) {
+        throw new Error('请先在设置中配置 LLM（故事生成）的 API Key');
+    }
+
     const prompt = STORY_PROMPT_TEMPLATE
         .replace('{theme}', theme)
         .replace('{sceneCount}', sceneCount.toString());
 
-    let content: string;
-
-    // 根据不同供应商调用对应的 LLM API
-    switch (provider) {
-        case 'openai':
-            content = await callOpenAIChat(prompt, apiKey);
-            break;
-        case 'doubao':
-            content = await callDoubaoChat(prompt, apiKey);
-            break;
-        case 'zhipu':
-            content = await callZhipuChat(prompt, apiKey);
-            break;
-        default:
-            // 默认使用 OpenAI
-            content = await callOpenAIChat(prompt, apiKey);
-    }
+    // 调用通用 Chat API
+    const content = await callChatAPI(prompt, config);
 
     // 解析 JSON 结果
     try {
@@ -89,17 +105,23 @@ export async function generateStoryWithLLM(
 }
 
 /**
- * 调用 OpenAI Chat API
+ * 通用 Chat API 调用（兼容 OpenAI 格式的 API）
  */
-async function callOpenAIChat(prompt: string, apiKey: string): Promise<string> {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+async function callChatAPI(prompt: string, config: LLMConfig): Promise<string> {
+    // 移除末尾斜杠
+    const baseUrl = config.baseUrl.replace(/\/+$/, '');
+    const endpoint = `${baseUrl}/chat/completions`;
+
+    console.log(`🤖 LLM 请求: endpoint=${endpoint}, model=${config.modelName}`);
+
+    const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+            'Authorization': `Bearer ${config.apiKey}`
         },
         body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: config.modelName,
             messages: [
                 { role: 'system', content: '你是一个专业的儿童绘本作家。' },
                 { role: 'user', content: prompt }
@@ -111,7 +133,8 @@ async function callOpenAIChat(prompt: string, apiKey: string): Promise<string> {
 
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error?.message || 'OpenAI 调用失败');
+        console.error('LLM 调用失败:', error);
+        throw new Error(error.error?.message || 'LLM 调用失败');
     }
 
     const data = await response.json();
@@ -119,76 +142,14 @@ async function callOpenAIChat(prompt: string, apiKey: string): Promise<string> {
 }
 
 /**
- * 调用豆包 Chat API
- */
-async function callDoubaoChat(prompt: string, apiKey: string): Promise<string> {
-    const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'doubao-pro-32k',
-            messages: [
-                { role: 'system', content: '你是一个专业的儿童绘本作家。' },
-                { role: 'user', content: prompt }
-            ],
-            temperature: 0.8
-        })
-    });
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || '豆包调用失败');
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
-}
-
-/**
- * 调用智谱 Chat API
- */
-async function callZhipuChat(prompt: string, apiKey: string): Promise<string> {
-    const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'glm-4-flash',
-            messages: [
-                { role: 'system', content: '你是一个专业的儿童绘本作家。' },
-                { role: 'user', content: prompt }
-            ],
-            temperature: 0.8
-        })
-    });
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || '智谱调用失败');
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
-}
-
-/**
- * 获取用于故事生成的 API Key
- * 优先使用 OpenAI，然后豆包，然后智谱
+ * 获取用于故事生成的配置（兼容旧接口）
+ * @deprecated 使用 getLLMConfig() 替代
  */
 export function getStoryApiKey(): { provider: string; apiKey: string } | null {
-    const providers = ['openai', 'doubao', 'zhipu'];
-
-    for (const provider of providers) {
-        const row = db.prepare('SELECT api_key FROM api_keys WHERE provider = ?').get(provider) as { api_key: string } | undefined;
-        if (row?.api_key) {
-            return { provider, apiKey: row.api_key };
-        }
+    const config = getLLMConfig();
+    if (!config) {
+        return null;
     }
-
-    return null;
+    return { provider: 'llm', apiKey: config.apiKey };
 }
+

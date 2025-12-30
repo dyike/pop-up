@@ -1,7 +1,7 @@
 // 绘本 API 路由
 import { Router, Request, Response } from 'express';
 import db from '../db/index.js';
-import { generateStoryWithLLM, getStoryApiKey, type GeneratedStory, type Scene } from '../services/storyService.js';
+import { generateStoryWithLLM, getLLMConfig, type GeneratedStory, type Scene } from '../services/storyService.js';
 import { generateImage, enhancePrompt, STYLES } from '../services/aiService.js';
 
 const router = Router();
@@ -84,23 +84,23 @@ router.post('/generate', async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, error: '页数应在 2-8 之间' });
         }
 
-        // 获取故事生成用的 API Key
-        const storyKeyInfo = getStoryApiKey();
-        if (!storyKeyInfo) {
-            return res.status(400).json({ success: false, error: '请先配置 LLM API Key（OpenAI/豆包/智谱）' });
+        // 检查 LLM 配置（故事生成）
+        const llmConfig = getLLMConfig();
+        if (!llmConfig) {
+            return res.status(400).json({ success: false, error: '请先在设置中配置 LLM（故事生成）的 API Key' });
         }
 
-        // 获取图片生成用的 API Key
-        const imageKeyRow = db.prepare('SELECT api_key FROM api_keys WHERE provider = ?').get(provider) as { api_key: string } | undefined;
-        if (!imageKeyRow) {
+        // 检查图片生成配置
+        const imageConfigRow = db.prepare('SELECT api_key, base_url, model_name FROM api_keys WHERE provider = ?').get(provider) as { api_key: string; base_url: string | null; model_name: string | null } | undefined;
+        if (!imageConfigRow) {
             return res.status(400).json({ success: false, error: `请先配置 ${provider} 的 API Key` });
         }
 
         console.log(`📖 开始生成绘本: theme=${theme}, sceneCount=${sceneCount}`);
 
-        // Step 1: 生成故事
+        // Step 1: 生成故事（使用 LLM 配置）
         console.log('📝 正在生成故事...');
-        const story = await generateStoryWithLLM(theme, sceneCount, storyKeyInfo.provider, storyKeyInfo.apiKey);
+        const story = await generateStoryWithLLM(theme, sceneCount);
         console.log(`✅ 故事生成完成: ${story.title}`);
 
         // Step 2: 创建绘本记录
@@ -133,8 +133,16 @@ router.post('/generate', async (req: Request, res: Response) => {
             }
         });
 
-        // 后台继续生成图片
-        generateStorybookImages(storybookId, story.scenes, style, provider, imageKeyRow.api_key)
+        // 后台继续生成图片（传递完整配置）
+        generateStorybookImages(
+            storybookId,
+            story.scenes,
+            style,
+            provider,
+            imageConfigRow.api_key,
+            imageConfigRow.base_url || undefined,
+            imageConfigRow.model_name || undefined
+        )
             .then(() => {
                 console.log(`✅ 绘本 ${storybookId} 图片生成完成`);
             })
@@ -155,7 +163,9 @@ async function generateStorybookImages(
     scenes: Scene[],
     style: string,
     provider: string,
-    apiKey: string
+    apiKey: string,
+    baseUrl?: string,
+    modelName?: string
 ): Promise<void> {
     const styleConfig = STYLES[style] || STYLES.cartoon;
 
@@ -166,11 +176,13 @@ async function generateStorybookImages(
             // 增强 prompt
             const enhancedPrompt = `${scene.imagePrompt}, ${styleConfig.prompt}, child-friendly, safe for kids, high quality illustration`;
 
-            // 生成图片
+            // 生成图片（传递完整配置）
             const result = await generateImage({
                 prompt: enhancedPrompt,
                 provider,
-                apiKey
+                apiKey,
+                baseUrl,
+                model: modelName
             });
 
             // 更新页面记录

@@ -11,7 +11,14 @@ export class DoubaoProvider extends BaseProvider {
         super(config);
         this.model = config.model || 'doubao-seedu-20241210';
         this.size = config.size || '1024x1024';
-        this.baseUrl = 'https://ark.cn-beijing.volces.com/api/v3';
+    }
+
+    getDefaultBaseUrl() {
+        return 'https://ark.cn-beijing.volces.com/api/v3';
+    }
+
+    getDefaultModelName() {
+        return 'doubao-seedu-20241210';
     }
 
     async generateImage(prompt, options = {}) {
@@ -19,12 +26,13 @@ export class DoubaoProvider extends BaseProvider {
             throw new Error('请先配置豆包 API Key');
         }
 
-        const model = options.model || this.model;
+        const model = this.getModelName() || options.model || this.model;
         const size = options.size || this.size;
         const [width, height] = size.split('x').map(Number);
+        const baseUrl = this.getBaseUrl();
 
         try {
-            const response = await fetch(`${this.baseUrl}/images/generations`, {
+            const response = await fetch(`${baseUrl}/images/generations`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -69,7 +77,14 @@ export class ZhipuProvider extends BaseProvider {
         super(config);
         this.model = config.model || 'cogview-3-plus';
         this.size = config.size || '1024x1024';
-        this.baseUrl = 'https://open.bigmodel.cn/api/paas/v4';
+    }
+
+    getDefaultBaseUrl() {
+        return 'https://open.bigmodel.cn/api/paas/v4';
+    }
+
+    getDefaultModelName() {
+        return 'cogview-3-plus';
     }
 
     async generateImage(prompt, options = {}) {
@@ -77,11 +92,12 @@ export class ZhipuProvider extends BaseProvider {
             throw new Error('请先配置智谱 API Key');
         }
 
-        const model = options.model || this.model;
+        const model = this.getModelName() || options.model || this.model;
         const size = options.size || this.size;
+        const baseUrl = this.getBaseUrl();
 
         try {
-            const response = await fetch(`${this.baseUrl}/images/generations`, {
+            const response = await fetch(`${baseUrl}/images/generations`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -123,7 +139,14 @@ export class TongyiProvider extends BaseProvider {
         super(config);
         this.model = config.model || 'wanx-v1';
         this.size = config.size || '1024x1024';
-        this.baseUrl = 'https://dashscope.aliyuncs.com/api/v1';
+    }
+
+    getDefaultBaseUrl() {
+        return 'https://dashscope.aliyuncs.com/api/v1';
+    }
+
+    getDefaultModelName() {
+        return 'wanx-v1';
     }
 
     async generateImage(prompt, options = {}) {
@@ -131,12 +154,13 @@ export class TongyiProvider extends BaseProvider {
             throw new Error('请先配置通义万相 API Key');
         }
 
-        const model = options.model || this.model;
+        const model = this.getModelName() || options.model || this.model;
         const size = options.size || this.size;
+        const baseUrl = this.getBaseUrl();
 
         try {
             // 通义万相使用异步任务模式
-            const response = await fetch(`${this.baseUrl}/services/aigc/text2image/image-synthesis`, {
+            const response = await fetch(`${baseUrl}/services/aigc/text2image/image-synthesis`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -172,10 +196,11 @@ export class TongyiProvider extends BaseProvider {
     }
 
     async pollResult(taskId, maxAttempts = 60) {
+        const baseUrl = this.getBaseUrl();
         for (let i = 0; i < maxAttempts; i++) {
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            const response = await fetch(`${this.baseUrl}/tasks/${taskId}`, {
+            const response = await fetch(`${baseUrl}/tasks/${taskId}`, {
                 headers: {
                     'Authorization': `Bearer ${this.apiKey}`
                 }
@@ -208,7 +233,14 @@ export class StabilityProvider extends BaseProvider {
         super(config);
         this.model = config.model || 'stable-diffusion-xl-1024-v1-0';
         this.size = config.size || '1024x1024';
-        this.baseUrl = 'https://api.stability.ai/v1';
+    }
+
+    getDefaultBaseUrl() {
+        return 'https://api.stability.ai/v1';
+    }
+
+    getDefaultModelName() {
+        return 'stable-diffusion-xl-1024-v1-0';
     }
 
     async generateImage(prompt, options = {}) {
@@ -216,13 +248,14 @@ export class StabilityProvider extends BaseProvider {
             throw new Error('请先配置 Stability AI API Key');
         }
 
-        const model = options.model || this.model;
+        const model = this.getModelName() || options.model || this.model;
         const size = options.size || this.size;
         const [width, height] = size.split('x').map(Number);
+        const baseUrl = this.getBaseUrl();
 
         try {
             const response = await fetch(
-                `${this.baseUrl}/generation/${model}/text-to-image`,
+                `${baseUrl}/generation/${model}/text-to-image`,
                 {
                     method: 'POST',
                     headers: {
@@ -272,16 +305,24 @@ export class ReplicateProvider extends BaseProvider {
         super(config);
         this.model = config.model || 'flux-schnell';
         this.size = config.size || '1024x1024';
-        this.baseUrl = 'https://api.replicate.com/v1';
+    }
+
+    getDefaultBaseUrl() {
+        return 'https://api.replicate.com/v1';
+    }
+
+    getDefaultModelName() {
+        return 'flux-schnell';
     }
 
     getModelVersion() {
+        const model = this.getModelName() || this.model;
         const versions = {
             'flux-schnell': 'black-forest-labs/flux-schnell',
             'flux-dev': 'black-forest-labs/flux-dev',
             'sdxl': 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b'
         };
-        return versions[this.model] || versions['flux-schnell'];
+        return versions[model] || model;
     }
 
     async generateImage(prompt, options = {}) {
@@ -291,9 +332,10 @@ export class ReplicateProvider extends BaseProvider {
 
         const size = options.size || this.size;
         const [width, height] = size.split('x').map(Number);
+        const baseUrl = this.getBaseUrl();
 
         try {
-            const response = await fetch(`${this.baseUrl}/predictions`, {
+            const response = await fetch(`${baseUrl}/predictions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

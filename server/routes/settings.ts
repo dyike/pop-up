@@ -18,6 +18,83 @@ router.get('/', (_req: Request, res: Response) => {
     }
 });
 
+// ============ LLM 配置（故事生成用） ============
+// 注意：这些路由必须在 /:key 之前定义，否则会被通配符匹配
+
+// 获取 LLM 配置
+router.get('/llm-config', (_req: Request, res: Response) => {
+    try {
+        const row = db.prepare('SELECT api_key, base_url, model_name FROM llm_config WHERE id = 1').get() as { api_key: string | null; base_url: string; model_name: string } | undefined;
+
+        if (!row || !row.api_key) {
+            return res.json({
+                success: true,
+                data: {
+                    configured: false,
+                    baseUrl: row?.base_url || 'https://api.openai.com/v1',
+                    modelName: row?.model_name || 'gpt-4o-mini'
+                }
+            });
+        }
+
+        // 部分隐藏 API Key
+        const key = row.api_key;
+        const masked = key.length > 8
+            ? key.slice(0, 4) + '••••••••' + key.slice(-4)
+            : '••••••••';
+
+        res.json({
+            success: true,
+            data: {
+                configured: true,
+                masked,
+                baseUrl: row.base_url || 'https://api.openai.com/v1',
+                modelName: row.model_name || 'gpt-4o-mini'
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: (error as Error).message });
+    }
+});
+
+// 保存 LLM 配置
+router.put('/llm-config', (req: Request, res: Response) => {
+    try {
+        const { apiKey, baseUrl, modelName } = req.body;
+
+        console.log(`💾 保存 LLM 配置: baseUrl=${baseUrl || '(默认)'}, modelName=${modelName || '(默认)'}`);
+
+        if (!apiKey) {
+            return res.status(400).json({ success: false, error: '缺少 apiKey 参数' });
+        }
+
+        db.prepare(`
+      INSERT INTO llm_config (id, api_key, base_url, model_name, updated_at) 
+      VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(id) DO UPDATE SET 
+        api_key = ?, 
+        base_url = ?,
+        model_name = ?,
+        updated_at = CURRENT_TIMESTAMP
+    `).run(
+            apiKey,
+            baseUrl || 'https://api.openai.com/v1',
+            modelName || 'gpt-4o-mini',
+            apiKey,
+            baseUrl || 'https://api.openai.com/v1',
+            modelName || 'gpt-4o-mini'
+        );
+
+        console.log(`✅ LLM 配置已保存`);
+        res.json({ success: true, data: { configured: true } });
+    } catch (error) {
+        console.error('❌ 保存 LLM 配置失败:', error);
+        res.status(500).json({ success: false, error: (error as Error).message });
+    }
+});
+
+// ============ Settings Key-Value ============
+
 // 获取单个设置
 router.get('/:key', (req: Request, res: Response) => {
     try {
@@ -70,11 +147,11 @@ router.get('/api-keys/list', (_req: Request, res: Response) => {
     }
 });
 
-// 获取单个供应商的 API Key (部分隐藏)
+// 获取单个供应商的配置 (API Key 部分隐藏)
 router.get('/api-keys/:provider', (req: Request, res: Response) => {
     try {
         const { provider } = req.params;
-        const row = db.prepare('SELECT api_key FROM api_keys WHERE provider = ?').get(provider) as { api_key: string } | undefined;
+        const row = db.prepare('SELECT api_key, base_url, model_name FROM api_keys WHERE provider = ?').get(provider) as { api_key: string; base_url: string | null; model_name: string | null } | undefined;
 
         if (!row) {
             return res.json({ success: true, data: { configured: false } });
@@ -86,30 +163,46 @@ router.get('/api-keys/:provider', (req: Request, res: Response) => {
             ? key.slice(0, 4) + '••••••••' + key.slice(-4)
             : '••••••••';
 
-        res.json({ success: true, data: { configured: true, masked } });
+        res.json({
+            success: true,
+            data: {
+                configured: true,
+                masked,
+                baseUrl: row.base_url || '',
+                modelName: row.model_name || ''
+            }
+        });
     } catch (error) {
         res.status(500).json({ success: false, error: (error as Error).message });
     }
 });
 
-// 保存 API Key
+// 保存 Provider 配置 (API Key, Base URL, Model Name)
 router.put('/api-keys/:provider', (req: Request, res: Response) => {
     try {
         const { provider } = req.params;
-        const { apiKey } = req.body;
+        const { apiKey, baseUrl, modelName } = req.body;
+
+        console.log(`💾 保存配置: provider=${provider}, baseUrl=${baseUrl || '(空)'}, modelName=${modelName || '(空)'}`);
 
         if (!apiKey) {
             return res.status(400).json({ success: false, error: '缺少 apiKey 参数' });
         }
 
         db.prepare(`
-      INSERT INTO api_keys (provider, api_key, updated_at) 
-      VALUES (?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(provider) DO UPDATE SET api_key = ?, updated_at = CURRENT_TIMESTAMP
-    `).run(provider, apiKey, apiKey);
+      INSERT INTO api_keys (provider, api_key, base_url, model_name, updated_at) 
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(provider) DO UPDATE SET 
+        api_key = ?, 
+        base_url = ?,
+        model_name = ?,
+        updated_at = CURRENT_TIMESTAMP
+    `).run(provider, apiKey, baseUrl || null, modelName || null, apiKey, baseUrl || null, modelName || null);
 
+        console.log(`✅ 配置已保存到数据库`);
         res.json({ success: true, data: { provider, configured: true } });
     } catch (error) {
+        console.error('❌ 保存配置失败:', error);
         res.status(500).json({ success: false, error: (error as Error).message });
     }
 });
@@ -127,3 +220,5 @@ router.delete('/api-keys/:provider', (req: Request, res: Response) => {
 });
 
 export default router;
+
+

@@ -24,15 +24,16 @@ router.post('/', async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, error: '请选择 AI 供应商' });
         }
 
-        // 检查 API Key
-        const keyRow = db.prepare('SELECT api_key FROM api_keys WHERE provider = ?').get(provider) as { api_key: string } | undefined;
+        // 检查 API Key 和获取完整配置
+        const configRow = db.prepare('SELECT api_key, base_url, model_name FROM api_keys WHERE provider = ?').get(provider) as { api_key: string; base_url: string | null; model_name: string | null } | undefined;
 
-        if (!keyRow) {
+        if (!configRow) {
             return res.status(400).json({ success: false, error: `请先配置 ${provider} 的 API Key` });
         }
 
         console.log(`📝 生成请求: provider=${provider}, style=${style}`);
         console.log(`📖 故事: ${story.slice(0, 50)}...`);
+        console.log(`🔧 配置: baseUrl=${configRow.base_url || '(默认)'}, model=${configRow.model_name || '(默认)'}`);
 
         // 增强 prompt
         const enhancedPrompt = enhancePrompt(story, style);
@@ -42,7 +43,9 @@ router.post('/', async (req: Request, res: Response) => {
         const result = await generateImage({
             prompt: enhancedPrompt,
             provider,
-            apiKey: keyRow.api_key
+            apiKey: configRow.api_key,
+            baseUrl: configRow.base_url || undefined,
+            model: configRow.model_name || undefined
         });
 
         console.log(`🎨 生成成功: ${result.url.slice(0, 50)}...`);

@@ -9,8 +9,17 @@ export interface Setting {
 
 export interface ApiKey {
     provider: string;
-    encrypted_key: string;
+    api_key: string;
+    base_url?: string;
+    model_name?: string;
     updated_at?: string;
+}
+
+// Provider 配置保存请求
+export interface ProviderConfigRequest {
+    apiKey: string;
+    baseUrl?: string;
+    modelName?: string;
 }
 
 // 图片相关

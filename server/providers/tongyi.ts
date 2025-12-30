@@ -4,19 +4,23 @@ import type { GenerateImageResult } from '../types/index.js';
 interface TongyiOptions {
     prompt: string;
     apiKey: string;
+    baseUrl?: string;
     model?: string;
     size?: string;
 }
+
+const DEFAULT_BASE_URL = 'https://dashscope.aliyuncs.com/api/v1';
 
 async function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export async function generateWithTongyi(options: TongyiOptions): Promise<GenerateImageResult> {
-    const { prompt, apiKey, model = 'wanx-v1', size = '1024x1024' } = options;
+    const { prompt, apiKey, baseUrl, model = 'wanx-v1', size = '1024x1024' } = options;
+    const baseEndpoint = (baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 
     // 提交任务
-    const submitResponse = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis', {
+    const submitResponse = await fetch(`${baseEndpoint}/services/aigc/text2image/image-synthesis`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -42,7 +46,7 @@ export async function generateWithTongyi(options: TongyiOptions): Promise<Genera
     for (let i = 0; i < 60; i++) {
         await sleep(2000);
 
-        const statusResponse = await fetch(`https://dashscope.aliyuncs.com/api/v1/tasks/${taskId}`, {
+        const statusResponse = await fetch(`${baseEndpoint}/tasks/${taskId}`, {
             headers: { 'Authorization': `Bearer ${apiKey}` }
         });
 
@@ -60,3 +64,4 @@ export async function generateWithTongyi(options: TongyiOptions): Promise<Genera
 
     throw new Error('生成超时');
 }
+

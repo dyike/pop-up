@@ -7,10 +7,21 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- API Keys 表
+-- API Keys 表（包含 provider 完整配置，用于图片生成）
 CREATE TABLE IF NOT EXISTS api_keys (
   provider TEXT PRIMARY KEY,
   api_key TEXT NOT NULL,
+  base_url TEXT,
+  model_name TEXT,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- LLM 配置表（用于故事生成的 Chat 模型）
+CREATE TABLE IF NOT EXISTS llm_config (
+  id INTEGER PRIMARY KEY CHECK (id = 1),  -- 只保存一条配置
+  api_key TEXT,
+  base_url TEXT DEFAULT 'https://api.openai.com/v1',
+  model_name TEXT DEFAULT 'gpt-4o-mini',
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

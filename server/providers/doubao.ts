@@ -4,15 +4,20 @@ import type { GenerateImageResult } from '../types/index.js';
 interface DoubaoOptions {
     prompt: string;
     apiKey: string;
+    baseUrl?: string;
     model?: string;
     size?: string;
 }
 
-export async function generateWithDoubao(options: DoubaoOptions): Promise<GenerateImageResult> {
-    const { prompt, apiKey, model = 'doubao-seedu-20241210', size = '1024x1024' } = options;
-    const [width, height] = size.split('x').map(Number);
+const DEFAULT_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 
-    const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
+export async function generateWithDoubao(options: DoubaoOptions): Promise<GenerateImageResult> {
+    const { prompt, apiKey, baseUrl, model = 'doubao-seedu-20241210', size = '1024x1024' } = options;
+    const [width, height] = size.split('x').map(Number);
+    const base = (baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+    const endpoint = `${base}/images/generations`;
+
+    const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -40,3 +45,4 @@ export async function generateWithDoubao(options: DoubaoOptions): Promise<Genera
         revisedPrompt: prompt
     };
 }
+
