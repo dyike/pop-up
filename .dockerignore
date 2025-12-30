@@ -1,0 +1,13 @@
+# Docker 忽略文件
+node_modules
+npm-debug.log
+dist
+data
+.git
+.gitignore
+*.md
+.env
+.env.*
+.vscode
+.idea
+*.log

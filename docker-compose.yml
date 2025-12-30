@@ -1,0 +1,30 @@
+# Pop-Up 绘本助手
+# Docker Compose 配置文件
+
+services:
+  popup:
+    build: .
+    container_name: popup-storybook
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      # 持久化数据库
+      - popup-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    # 允许容器访问宿主机的服务（如内网代理）
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  popup-data:
+    driver: local
+

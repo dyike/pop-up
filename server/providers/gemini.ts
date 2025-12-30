@@ -17,12 +17,7 @@ export async function generateWithGemini(options: GeminiOptions): Promise<Genera
     const { prompt, apiKey, baseUrl, model = 'gemini-2.0-flash-exp', size = '1024x1024' } = options;
 
     // 移除末尾斜杠
-    let base = (baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
-
-    // 如果 base URL 不包含 v1beta 或 v1，添加 /v1beta
-    if (!base.includes('/v1beta') && !base.includes('/v1/')) {
-        base = `${base}/v1beta`;
-    }
+    const base = (baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 
     // Gemini 使用 generateContent 端点
     const endpoint = `${base}/models/${model}:generateContent`;
