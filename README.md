@@ -22,6 +22,26 @@
 
 ---
 
+## 📋 更新日志
+
+### v1.1.0 (2026-01-08)
+
+**Docker 部署优化：**
+- ✅ 修复局域网访问问题：前端不再硬编码 localhost，支持从任何设备访问
+- ✅ 优化 CORS 配置：生产环境允许跨域访问
+- ✅ 添加 Vite 开发代理：开发环境自动转发 API 请求
+- ✅ 新增环境变量配置支持
+- ✅ 完善文档：添加故障排查指南
+
+**重要提示：** 如果你之前部署过，请重新构建镜像以应用这些修复：
+```bash
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+---
+
 ## 🚀 快速开始
 
 ### 开发模式
@@ -85,7 +105,30 @@ docker run -d \
 
 ### 访问应用
 
-部署后访问: `http://<你的NAS-IP>:3001`
+**从任何设备访问：**
+- 局域网内访问: `http://<服务器IP>:3001`
+- 本机访问: `http://localhost:3001`
+- NAS 部署: `http://<NAS-IP>:3001`
+
+**注意事项：**
+- 前后端已集成在同一端口 3001，无需额外配置
+- 支持从其他机器访问，不再限制 localhost
+- 部署后可从手机、平板等设备直接访问
+
+### 环境变量配置（可选）
+
+创建 `.env` 文件自定义配置：
+
+```bash
+# 服务器端口（默认 3001）
+PORT=3001
+
+# 运行模式
+NODE_ENV=production
+
+# 自定义 API 地址（通常不需要设置）
+# VITE_API_BASE=/api
+```
 
 ### 数据持久化
 
@@ -93,6 +136,16 @@ docker run -d \
 - 配置信息（API Keys、设置）
 - 绘本历史
 - 图片数据
+
+**备份数据：**
+```bash
+# 查看数据卷位置
+docker volume inspect popup-data
+
+# 备份数据库
+docker run --rm -v popup-data:/data -v $(pwd):/backup alpine \
+  tar czf /backup/popup-backup.tar.gz /data
+```
 
 ---
 
@@ -208,6 +261,103 @@ pop-up/
 | `/api/storybook/generate` | POST | 生成绘本 |
 | `/api/storybook/:id` | GET | 获取绘本详情 |
 | `/api/storybook/:id/status` | GET | 获取生成状态 |
+
+---
+
+## 🔍 故障排查
+
+### Docker 部署常见问题
+
+#### 问题 1: 从其他机器无法访问
+
+**症状：** 在服务器本机可以访问 `http://localhost:3001`，但其他设备无法访问
+
+**解决方案：**
+1. 检查防火墙是否开放 3001 端口
+   ```bash
+   # Linux (ufw)
+   sudo ufw allow 3001
+
+   # Linux (firewalld)
+   sudo firewall-cmd --add-port=3001/tcp --permanent
+   sudo firewall-cmd --reload
+   ```
+
+2. 确认 Docker 容器正在运行
+   ```bash
+   docker ps | grep popup
+   ```
+
+3. 使用服务器 IP 而非 localhost 访问
+   ```bash
+   # 查看服务器 IP
+   ip addr show
+   # 或
+   hostname -I
+   ```
+
+#### 问题 2: API 请求显示 localhost 错误
+
+**症状：** 浏览器控制台显示请求 `http://localhost:3001/api` 失败
+
+**原因：** 旧版本硬编码了 localhost，需要重新构建
+
+**解决方案：**
+```bash
+# 重新构建镜像
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+#### 问题 3: CORS 跨域错误
+
+**症状：** 控制台显示 CORS policy 错误
+
+**解决方案：**
+- 确保使用最新代码（已修复 CORS 配置）
+- 生产环境已允许所有来源访问
+- 如仍有问题，检查 `server/index.ts:22` 的 CORS 配置
+
+#### 问题 4: 容器内无法访问宿主机代理
+
+**症状：** 配置了本机代理（如 `127.0.0.1:8045`），但容器内无法访问
+
+**解决方案：**
+使用 `host.docker.internal` 替代 `127.0.0.1`：
+
+1. 确认 `docker-compose.yml` 中有 `extra_hosts` 配置：
+   ```yaml
+   extra_hosts:
+     - "host.docker.internal:host-gateway"
+   ```
+
+2. 在应用设置中将 Base URL 改为：
+   ```
+   http://host.docker.internal:8045/v1beta
+   ```
+
+### 开发环境问题
+
+#### 前端无法连接后端
+
+**解决方案：**
+1. 确保后端服务器在运行（端口 3001）
+2. 检查 `vite.config.js` 的 proxy 配置
+3. 清除浏览器缓存并刷新
+
+### 日志查看
+
+```bash
+# Docker 日志
+docker-compose logs -f
+
+# 只看最近 100 行
+docker-compose logs --tail=100
+
+# 进入容器排查
+docker exec -it popup-storybook sh
+```
 
 ---
 

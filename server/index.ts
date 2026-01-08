@@ -57,7 +57,8 @@ if (isProduction) {
         app.use(express.static(distPath));
 
         // SPA 回退：所有非 API 请求返回 index.html
-        app.get('*', (req: Request, res: Response) => {
+        // Express 5 语法：使用 /* 而非 *
+        app.get('/*', (req: Request, res: Response) => {
             if (!req.path.startsWith('/api')) {
                 res.sendFile(join(distPath, 'index.html'));
             }
