@@ -16,8 +16,10 @@ const PORT = process.env.PORT || 3001;
 const isProduction = process.env.NODE_ENV === 'production';
 
 // 中间件
+// 生产环境：允许所有来源（因为前后端部署在同一服务下）
+// 开发环境：只允许本地开发服务器
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://localhost:3001'],
+    origin: isProduction ? true : ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://localhost:3001'],
     credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));

@@ -1,7 +1,10 @@
 // 前端 API 客户端
 // 统一的后端 API 调用接口
 
-const API_BASE = 'http://localhost:3001/api';
+// 使用相对路径，自动适配开发和生产环境
+// 开发环境：通过 Vite proxy 转发到 localhost:3001
+// 生产环境：直接访问同域名下的 /api
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 // 通用请求函数
 async function request(endpoint, options = {}) {
