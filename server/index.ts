@@ -56,12 +56,14 @@ if (isProduction) {
         // 静态文件服务
         app.use(express.static(distPath));
 
-        // SPA 回退：所有非 API 请求返回 index.html
-        // Express 5 语法：使用 /* 而非 *
-        app.get('/*', (req: Request, res: Response) => {
-            if (!req.path.startsWith('/api')) {
-                res.sendFile(join(distPath, 'index.html'));
+        // SPA 回退：所有非 API 的 GET/HEAD 请求返回 index.html
+        app.use((req: Request, res: Response, next: NextFunction) => {
+            const isGetOrHead = req.method === 'GET' || req.method === 'HEAD';
+            if (!isGetOrHead || req.path.startsWith('/api')) {
+                next();
+                return;
             }
+            res.sendFile(join(distPath, 'index.html'));
         });
     } else {
         console.warn('⚠️ 未找到 dist 目录，静态文件服务未启用');
@@ -111,4 +113,3 @@ async function start(): Promise<void> {
 start();
 
 export default app;
-

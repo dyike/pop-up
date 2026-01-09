@@ -10,7 +10,7 @@ services:
       - "3001:3001"
     volumes:
       # 持久化数据库
-      - popup-data:/app/data
+      - ./data:/app/data
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -24,7 +24,4 @@ services:
       retries: 3
       start_period: 10s
 
-volumes:
-  popup-data:
-    driver: local
 
