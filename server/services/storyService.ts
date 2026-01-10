@@ -42,6 +42,131 @@ export interface LLMConfig {
     modelName: string;
 }
 
+function extractJsonBlock(content: string): string | null {
+    const start = content.indexOf('{');
+    const end = content.lastIndexOf('}');
+    if (start === -1 || end === -1 || end <= start) {
+        return null;
+    }
+    return content.slice(start, end + 1);
+}
+
+function escapeControlCharsInStrings(raw: string): string {
+    let result = '';
+    let inString = false;
+    let escaped = false;
+
+    for (let i = 0; i < raw.length; i += 1) {
+        const ch = raw[i];
+        if (inString) {
+            if (escaped) {
+                escaped = false;
+                result += ch;
+                continue;
+            }
+            if (ch === '\\') {
+                escaped = true;
+                result += ch;
+                continue;
+            }
+            if (ch === '"') {
+                inString = false;
+                result += ch;
+                continue;
+            }
+            if (ch === '\n') {
+                result += '\\n';
+                continue;
+            }
+            if (ch === '\r') {
+                result += '\\r';
+                continue;
+            }
+            if (ch === '\t') {
+                result += '\\t';
+                continue;
+            }
+            if (ch < ' ') {
+                result += ' ';
+                continue;
+            }
+            result += ch;
+            continue;
+        }
+
+        if (ch === '"') {
+            inString = true;
+            result += ch;
+            continue;
+        }
+        result += ch;
+    }
+
+    return result;
+}
+
+function removeTrailingCommas(raw: string): string {
+    let result = '';
+    let inString = false;
+    let escaped = false;
+
+    for (let i = 0; i < raw.length; i += 1) {
+        const ch = raw[i];
+        if (inString) {
+            if (escaped) {
+                escaped = false;
+                result += ch;
+                continue;
+            }
+            if (ch === '\\') {
+                escaped = true;
+                result += ch;
+                continue;
+            }
+            if (ch === '"') {
+                inString = false;
+                result += ch;
+                continue;
+            }
+            result += ch;
+            continue;
+        }
+
+        if (ch === '"') {
+            inString = true;
+            result += ch;
+            continue;
+        }
+
+        if (ch === ',') {
+            let j = i + 1;
+            while (j < raw.length && /\s/.test(raw[j])) {
+                j += 1;
+            }
+            if (j < raw.length && (raw[j] === '}' || raw[j] === ']')) {
+                continue;
+            }
+        }
+        result += ch;
+    }
+
+    return result;
+}
+
+function parseStoryJson(content: string): GeneratedStory {
+    const jsonBlock = extractJsonBlock(content);
+    if (!jsonBlock) {
+        throw new Error('无法解析故事内容');
+    }
+
+    try {
+        return JSON.parse(jsonBlock) as GeneratedStory;
+    } catch {
+        const repaired = removeTrailingCommas(escapeControlCharsInStrings(jsonBlock));
+        return JSON.parse(repaired) as GeneratedStory;
+    }
+}
+
 /**
  * 获取 LLM 配置
  */
@@ -85,12 +210,7 @@ export async function generateStoryWithLLM(
 
     // 解析 JSON 结果
     try {
-        // 提取 JSON 部分
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-            throw new Error('无法解析故事内容');
-        }
-        const story = JSON.parse(jsonMatch[0]) as GeneratedStory;
+        const story = parseStoryJson(content);
 
         // 验证结构
         if (!story.title || !Array.isArray(story.scenes) || story.scenes.length === 0) {
@@ -152,4 +272,3 @@ export function getStoryApiKey(): { provider: string; apiKey: string } | null {
     }
     return { provider: 'llm', apiKey: config.apiKey };
 }
-
